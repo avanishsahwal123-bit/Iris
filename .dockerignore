@@ -1,0 +1,35 @@
+# Dependencies & build artifacts
+**/node_modules
+**/bin
+**/.next
+**/.git
+**/.env
+**/.env.*
+!**/.env.example
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test & coverage
+*.test
+*.out
+coverage.*
+*.coverprofile
+
+# Docker compose (not needed inside containers)
+docker-compose.yml
+
+# Docs
+*.md
+!README.md
+
+# Large files at repo root
+cmd/
+test_json*.go

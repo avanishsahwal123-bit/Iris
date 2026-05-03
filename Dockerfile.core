@@ -1,0 +1,49 @@
+# ── Dockerfile.core ─────────────────────────────────────────────────────────
+# Multi-stage build for iris-core (API server + auto-migration)
+# Build context: repo root (needs packages/)
+# ────────────────────────────────────────────────────────────────────────────
+
+# ── Stage 1: Build ──────────────────────────────────────────────────────────
+FROM golang:1.24-alpine AS builder
+
+RUN apk add --no-cache git ca-certificates
+
+WORKDIR /src
+
+# Copy shared packages first (layer cache)
+COPY packages/ packages/
+
+# Copy the service
+COPY services/core/ services/core/
+
+# Download dependencies
+WORKDIR /src/services/core
+RUN go mod download
+
+# Build static binary
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /bin/iris-core ./cmd/api
+
+# ── Stage 2: Migrate binary ────────────────────────────────────────────────
+FROM golang:1.24-alpine AS migrate-builder
+
+RUN go install -tags "postgres" github.com/golang-migrate/migrate/v4/cmd/migrate@latest
+
+# ── Stage 3: Runtime ───────────────────────────────────────────────────────
+FROM alpine:3.21
+
+RUN apk add --no-cache ca-certificates tzdata
+
+# Copy binaries
+COPY --from=builder /bin/iris-core /bin/iris-core
+COPY --from=migrate-builder /go/bin/migrate /bin/migrate
+
+# Copy migrations
+COPY services/core/db/migrations/ /migrations/
+
+# Copy startup script
+COPY scripts/start-core.sh /bin/start-core.sh
+RUN chmod +x /bin/start-core.sh
+
+EXPOSE 3000
+
+CMD ["/bin/start-core.sh"]

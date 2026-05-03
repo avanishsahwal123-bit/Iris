@@ -1,0 +1,33 @@
+# ── Dockerfile.worker ───────────────────────────────────────────────────────
+# Multi-stage build for iris-worker (background job processor)
+# Build context: repo root (needs packages/)
+# ────────────────────────────────────────────────────────────────────────────
+
+# ── Stage 1: Build ──────────────────────────────────────────────────────────
+FROM golang:1.24-alpine AS builder
+
+RUN apk add --no-cache git ca-certificates
+
+WORKDIR /src
+
+# Copy shared packages first (layer cache)
+COPY packages/ packages/
+
+# Copy the service
+COPY services/worker/ services/worker/
+
+# Download dependencies
+WORKDIR /src/services/worker
+RUN go mod download
+
+# Build static binary
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /bin/iris-worker ./cmd
+
+# ── Stage 2: Runtime ───────────────────────────────────────────────────────
+FROM alpine:3.21
+
+RUN apk add --no-cache ca-certificates tzdata
+
+COPY --from=builder /bin/iris-worker /bin/iris-worker
+
+CMD ["/bin/iris-worker"]
