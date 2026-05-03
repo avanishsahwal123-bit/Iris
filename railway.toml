@@ -1,0 +1,6 @@
+[deploy]
+startCommand = "./out"
+
+[deploy.variables]
+RAILPACK_GO_WORKSPACE_MODULE = "services/core"
+CORE_PORT = "${{PORT}}"
