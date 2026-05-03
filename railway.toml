@@ -1,8 +1,8 @@
 [build]
-buildCommand = "cd services/core && go build -o ../out"
+buildCommand = "go build -C services/core -o ../out"
 
 [deploy]
-startCommand = "../out"
+startCommand = "./out"
 
 [deploy.variables]
 RAILPACK_GO_WORKSPACE_MODULE = "services/core"
